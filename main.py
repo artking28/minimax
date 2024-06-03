@@ -356,68 +356,6 @@ class Schema:
     #           Q-Learning            #
     ###################################
 
-    def trainQ(self, table, deepth, timeSecs):
-        schema = Schema(TIPORANDOM, TIPORANDOM)
-        alpha, upsilon = .7, .1
-        counter = 0
-
-        # Extrai a tabela do arquivo
-        startAt, qTable = datetime.now(), {}
-        try:
-            with open(File, 'rb') as f:
-                content = f.read()
-                if len(content) > 0:
-                    qTable = pickle.loads(content)
-        except Exception as err:
-            raise RuntimeError(f"Failed to read or decode the file: {err}") from err
-
-        player = True
-        while datetime.now() < startAt + timedelta(seconds=timeSecs):
-            if schema.round > deepth:
-                schema = Schema(schema.jogador1, schema.jogador2)
-                counter += 1
-                if counter%50000 == 0:
-                    try:
-                        buf1 = pickle.dumps(qTable)
-                        print("Done!!!")
-                        with open(table, 'wb') as f:
-                            f.write(buf1)
-                    except Exception as err:
-                        raise RuntimeError(err) from err
-                        
-            idSchema = schema.getId()
-            major = (-1, -1)
-            for x in range(0, COLUMNS):
-                n = schema.copySchema()
-                if n.setAtCol(x, player) is not None:
-                    continue
-                
-                score = n.scored(player)
-                if score > major[1]:
-                    major = (x, score)
-                if qTable[id] is None:
-                    qTable[id] = [0, 0, 0, 0, 0, 0, 0]
-                qTable[idSchema][x] = qTable[idSchema][x] + alpha*(upsilon*score-qTable[idSchema][x])
-
-            if schema.won(player) or schema.won(not player):
-                schema = Schema(schema.jogador1, schema.jogador2)
-                counter += 1
-                continue
-            err = schema.setAtCol(random.randint(0, 7), player) 
-            while err == "error":
-                err = schema.setAtCol(random.randint(0, 7), player) 
-            player = not player
-            schema.round += 1
-
-        # Salva tabela no arquivo
-        try:
-            buf1 = pickle.dumps(qTable)
-            print("Done!!!")
-            with open(table, 'wb') as f:
-                f.write(buf1)
-        except Exception as err:
-            raise RuntimeError(err) from err
-
     def getId(self):
         ret0, ret1 = 0, 0
         arr = [0, 0, 0, 0, 0, 0, 0]
@@ -427,8 +365,8 @@ class Schema:
         for x in range(COLUMNS):
             for y in range(ROWS):
                 n = 0
-                p, err = self.getAt(x, y)
-                if err:
+                p = self.getAt(x, y)
+                if p == "error":
                     raise RuntimeError(err)
                 if p.player is not None:
                     n = 2
@@ -444,8 +382,71 @@ class Schema:
             return ret0, False
         return ret1, True
 
+def trainQ(table, deepth, timeSecs):
+    schema = Schema(TIPORANDOM, TIPORANDOM)
+    alpha, upsilon = .7, .1
+    counter = 0
+
+    # Extrai a tabela do arquivo
+    startAt, qTable = datetime.now(), {}
+    [qTable.setdefault(i, []) for i in range(1)]
+    try:
+        with open(File, 'rb') as f:
+            content = f.read()
+            if len(content) > 0:
+                qTable = pickle.loads(content)
+    except Exception as err:
+        raise RuntimeError(f"Failed to read or decode the file: {err}") from err
+
+    player = True
+    while datetime.now() < startAt + timedelta(seconds=timeSecs):
+        if schema.round > deepth:
+            schema = Schema(schema.jogador1, schema.jogador2)
+            counter += 1
+            if counter%50000 == 0:
+                try:
+                    buf1 = pickle.dumps(qTable)
+                    print("Done!!!")
+                    with open(table, 'wb') as f:
+                        f.write(buf1)
+                except Exception as err:
+                    raise RuntimeError(err) from err
+
+        idSchema = schema.getId()
+        major = (-1, -1)
+        for x in range(0, COLUMNS):
+            n = schema.copySchema()
+            if n.setAtCol(x, player) is not None:
+                continue
+
+            score = n.scored(player)
+            if score > major[1]:
+                major = (x, score)
+            if idSchema not in qTable:
+                qTable[idSchema] = [0, 0, 0, 0, 0, 0, 0]
+            qTable[idSchema][x] = qTable[idSchema][x] + alpha*(upsilon*score-qTable[idSchema][x])
+
+        if schema.won(player) or schema.won(not player):
+            schema = Schema(schema.jogador1, schema.jogador2)
+            counter += 1
+            continue
+        err = schema.setAtCol(random.randint(0, 7), player) 
+        while err == "error":
+            err = schema.setAtCol(random.randint(0, 7), player) 
+        player = not player
+        schema.round += 1
+
+    # Salva tabela no arquivo
+    try:
+        buf1 = pickle.dumps(qTable)
+        print("Done!!!")
+        with open(table, 'wb') as f:
+            f.write(buf1)
+    except Exception as err:
+        raise RuntimeError(err) from err
+
+
 jogo = Schema(TIPOMINIMAX, TIPORANDOM)
 jogo.printBoard()
 jogo.startGame()
-# jogo.setAtCol(0, JOGADOR_IA)
-# jogo.scored(JOGADOR_IA)
+# trainQ(File, 4, 10)
