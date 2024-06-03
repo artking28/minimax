@@ -317,9 +317,13 @@ class Schema:
 				schema = Schema()
 				counter += 1
 				continue
-			while  schema.setAtCol(rand.Int()%7, player) == "error" {
-
+			err = schema.setAtCol(rand.Int()%7, player) 
+			while err == "error" {
+				err = schema.setAtCol(rand.Int()%7, player) 
 			}
+			player = !player
+			schema.round += 1
+			
 
 
 
