@@ -257,7 +257,7 @@ class Schema:
         #############> Liga o log do jogo <#############
         # print("\t"*actual, str(actual)+'.'+str(axis), "> max:", player, list)
         ################################################
-        ret = list[6 if player else 0]
+        ret = list[len(list)-1 if player else 0]
         return ret[0], ret[1] + 0.01*(sum(tup[1] for tup in list)/7)
 
     # Verifica a próxima linha jogável
